@@ -1,82 +1,133 @@
-## DESCRIPTION
-A scalable web app for exploring and editing Formula 1 data from Kaggle. It includes a Go tool to convert CSV files to a SQLite database, a FastAPI backend API for data access and editing, and a Next.js frontend with searchable tables, sorting, and embedded maps. Designed with clean separation of concerns, state management via URL, and easy setup. Future plans include authentication, real-time updates, and AI-assisted data parsing.
+# F1 Web App
 
-## USAGE ( windows )
-1. Create the database from csv files:
-- (download formel1 data from kaggle; see link below under SOURCES)
-- convert csv files to database with the csv-to-sql tool.
-    $ create_db.exe <csv-files-folder> <database-name>
-- make sure database file is called "formel1.db"
-- pass the db to "fastapi-db/data"
+> An interactive Formula 1 data explorer — from CSV to fullstack web application.
 
-2. install the database API and run it:
+A three-part project that converts Kaggle F1 datasets into a searchable, editable web app. A Go tool ingests CSV files into SQLite, a FastAPI backend serves the data via REST, and a Next.js SPA provides the UI with sortable tables, detail views, and embedded maps.
 
-- navigate to "fastapi-db" folder
-    $ cd fastapi-db
-- make sure python3  is installed
-- setup an python environment in the folder:
-    $ python -m venv .venv
-- make sure environment is activated. run the activate.bat file
-    $ activate
-- install all dependencies of the back-end:
-    $ pip install -r requirements.txt
-- run the back-end by calling run.bat
-    $ run
+## Project Structure
 
-3. install and run the nextjs app ( SPA front-end ): 
+```
+├── csv-to-sql-go-tool/         # Go CLI: CSV → SQLite converter
+│   └── create_db.go
+├── fastapi-db/                 # FastAPI backend (Python)
+│   ├── src/
+│   │   ├── api.py              # REST endpoints (CRUD, filtering, search)
+│   │   └── db.py               # SQLite database access layer
+│   ├── data/formel1.db         # Generated database
+│   ├── requirements.txt
+│   ├── run.bat / run.sh
+│   └── setup.sh
+├── nextjs-app/                 # Next.js frontend (TypeScript)
+│   ├── src/
+│   │   ├── app/                # Next.js App Router pages
+│   │   │   ├── layout.tsx
+│   │   │   ├── page.tsx        # Main table view
+│   │   │   ├── [...slug]/page.tsx  # Dynamic routing
+│   │   │   └── __detail/page.tsx   # Detail view
+│   │   ├── components/
+│   │   │   ├── _APP.tsx        # Main app shell with URL state
+│   │   │   ├── Table.tsx       # Sortable, searchable data table
+│   │   │   ├── Details.tsx     # Entry detail with embedded map
+│   │   │   ├── SearchBar.tsx
+│   │   │   ├── CheckBox.tsx    # Column visibility selector
+│   │   │   ├── DropDown.tsx
+│   │   │   ├── EntryBtnBar.tsx # CRUD actions
+│   │   │   ├── NewEntryModal.tsx
+│   │   │   ├── HighlightedText.tsx
+│   │   │   └── icons/          # SVG icon components
+│   │   ├── _api_calls.ts       # API client
+│   │   ├── _types.ts           # TypeScript type definitions
+│   │   ├── _globals.ts         # Global state & utilities
+│   │   ├── _utils.ts
+│   │   └── types.db.ts         # Database schema types
+│   ├── next.config.ts          # Dev proxy (CORS workaround)
+│   ├── package.json
+│   └── tsconfig.json
+└── README.md
+```
 
-- navigate to the "nextjs-app" folder:
-    $ cd nextjs-app
-- make sure nodejs is installed ( I used 22.16.0 )
-- install dependencies
-    $ npm install
-- run the front-end server:
-    $ npm run dev 
+## Architecture
 
+The application is split into three independent components connected via clear interfaces:
 
-## CONTENT
+```
+Kaggle CSV → [Go Tool] → SQLite DB → [FastAPI REST API] → [Next.js SPA] → Browser
+```
 
-- csv to sqlite tool in go
-- db-api und UI getrennte Projekte und skalierbar organisiert.
-- editerbare Daten
-- State Management via URL
-- proxy setup for api ( next.config) for dev-environment to solve CORS problem
-- use of enums
-- select shown columns
-- sorting
-- auto scrolling to selected entry
-- function to find picture from wiki page
-- embeded google maps to show locations if coordinates are given
-- ...
+- **Go CLI tool** — standalone CSV-to-SQLite converter, can be reused for any CSV dataset
+- **FastAPI backend** — RESTful API with filtering, sorting, and CRUD operations on the F1 dataset
+- **Next.js frontend** — single-page application with URL-based state management, column visibility controls, sorting, inline editing, and embedded Google Maps for location data
 
+The dev environment uses Next.js's built-in proxy to forward `/api/*` requests to the FastAPI backend, avoiding CORS issues.
 
-## SOURCES
-- Database (csv files)
-https://www.kaggle.com/datasets/rohanrao/formula-1-world-championship-1950-2020?resource=download
+## Quick Start
 
-- Tailwind components:
-Table: https://tailwindflex.com/@lukas-muller/table-template
-Search input : https://www.creative-tim.com/twcomponents/component/search-input-with-integrated-icon-and-button
+### Prerequisites
+- Go 1.20+ (for CSV conversion)
+- Python 3.10+
+- Node.js 18+
 
+### Setup
 
-## TODOS:
-- use .env files for config
-- login and session token creation
-- better performance: only visible rows; checking every trigger of rerender
-- websocket for update events
-- use correct relation and set primary and foreign keys
-- parse csv files with AI to create the correct primary and foreign keys and use correct column types
-- reasonable organisation in one git repo
-- write an install script
-- convert all scripts to sh scripts
-- limit API response to 100-500 entries 
-- ...
+```bash
+git clone <repo>
+cd F1_web_app
 
+# 1. Generate database
+# Download F1 data from Kaggle (see Sources), then:
+cd csv-to-sql-go-tool
+go build -o create_db.exe
+./create_db.exe <csv-folder> formel1.db
+copy formel1.db ..\fastapi-db\data\
+cd ..
 
-## NOTES:
-- requirements.txt erstellen
-    $ pipreqs ./src/ 
+# 2. Backend
+cd fastapi-db
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+cd ..
 
+# 3. Frontend
+cd nextjs-app
+npm install
+cd ..
+```
 
+### Run
 
+```bash
+# Terminal 1: Backend
+cd fastapi-db
+.venv\Scripts\activate
+python src/api.py
 
+# Terminal 2: Frontend
+cd nextjs-app
+npm run dev
+```
+
+Then open `http://localhost:3000/`.
+
+## Features
+
+- **Search & sort** — dynamic filtering across all columns, sort by any field
+- **Column visibility** — show/hide columns via checkboxes
+- **Inline editing** — edit values directly in the table, persist to backend
+- **URL-based state** — table state (sort, filters, selection) is stored in the URL, shareable and bookmarkable
+- **Detail view** — full entry details with embedded Google Maps for location data
+- **Auto-scroll** — selection follows the active entry
+- **Wiki image lookup** — auto-fetches driver/constructor images from Wikipedia
+
+## Technologies
+
+- **Go** — CSV-to-SQLite converter, standalone CLI
+- **Python / FastAPI** — REST API server
+- **TypeScript / Next.js** — Frontend SPA with App Router
+- **SQLite** — Embedded database
+- **Tailwind CSS** — Utility-first styling
+- **Google Maps API** — Location visualization
+
+## Sources
+
+- Formula 1 dataset: [Kaggle — Formula 1 World Championship (1950-2020)](https://www.kaggle.com/datasets/rohanrao/formula-1-world-championship-1950-2020)

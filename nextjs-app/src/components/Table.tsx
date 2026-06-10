@@ -33,6 +33,8 @@ export default function Table(props: IProps) {
 
     useEffect(() => {
         console.log("render Table ...")
+        if (props.rows.length === 0) return
+
         const cols = Object.keys(props.rows[0]);
         // remove the id col
         cols.shift()
